@@ -13,4 +13,4 @@ Delphi `TEncoding` extensions and improvements:
 
 ## Support
 
-If you like TEncodingEx, [send](https://www.buymeacoffee.com/quadroid "Donate") me a 🍩
+If you like TEncodingEx, you can [send](https://www.buymeacoffee.com/quadroid "Donate") me a 🍩
