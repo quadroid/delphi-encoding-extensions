@@ -7,7 +7,7 @@ Delphi `TEncoding` extensions and improvements:
   * Additional UTF-8 encoder that doesn’t write byte order mark.
   * Minor improvement to UTF-16 big-endian encoding class.
   * UTF-32 encoders / decoders (both little- and big-endian).
-  * `IMultiLanguage2` encoding interface via `TMLangEncoding`.
+  * [IMultiLanguage2](https://learn.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/platform-apis/aa741001(v=vs.85)) encoding interface via `TMLangEncoding`.
   * Implementation of a hexadecimal binary encoding.
   * New, more complete, encoding detection function.
 
