@@ -552,12 +552,33 @@ function TUTF16BigEncoding.GetBytes(Chars: PChar; CharCount: Integer;
   Bytes: PByte; ByteCount: Integer): Integer;
 var
   i: Integer;
-  words: PWord;
+  Words: PWord;
 begin
-  words := PWord(Bytes);
+  Words := PWord(Bytes);
 {$POINTERMATH ON}
+{$if true}
+  i := 0;
+  while i < CharCount div 8 * 8 do
+  begin
+    Words[i + 0] := bswap16(UInt16(Chars[i + 0]));
+    Words[i + 1] := bswap16(UInt16(Chars[i + 1]));
+    Words[i + 2] := bswap16(UInt16(Chars[i + 2]));
+    Words[i + 3] := bswap16(UInt16(Chars[i + 3]));
+    Words[i + 4] := bswap16(UInt16(Chars[i + 4]));
+    Words[i + 5] := bswap16(UInt16(Chars[i + 5]));
+    Words[i + 6] := bswap16(UInt16(Chars[i + 6]));
+    Words[i + 7] := bswap16(UInt16(Chars[i + 7]));
+    Inc(i, 8);
+  end;
+  while i < CharCount do
+  begin
+    Words[i] := bswap16(UInt16(Chars[i]));
+    Inc(i);
+  end;
+{$else}
   for i := 0 to CharCount - 1 do
-    words[i] := bswap16(UInt16(Chars[i]));
+    Words[i] := bswap16(UInt16(Chars[i]));
+{$endif}
 {$POINTERMATH OFF}
   Result := CharCount * SizeOf(Char);
 end;
@@ -572,16 +593,37 @@ end;
 function TUTF16BigEncoding.GetChars(Bytes: PByte; ByteCount: Integer;
   Chars: PChar; CharCount: Integer): Integer;
 var
-  words: PWord;
-  i, wordCount: Integer;
+  Words: PWord;
+  i, WordCount: Integer;
 begin
-  words := PWord(Bytes);
-  wordCount := ByteCount div SizeOf(Char);
+  Words := PWord(Bytes);
+  WordCount := ByteCount div SizeOf(Char);
 {$POINTERMATH ON}
-  for i := 0 to wordCount - 1 do
-    Chars[i] := Char(bswap16(words[i]));
+{$if true}
+  i := 0;
+  while i < WordCount div 8 * 8 do
+  begin
+    Chars[i + 0] := Char(bswap16(Words[i + 0]));
+    Chars[i + 1] := Char(bswap16(Words[i + 1]));
+    Chars[i + 2] := Char(bswap16(Words[i + 2]));
+    Chars[i + 3] := Char(bswap16(Words[i + 3]));
+    Chars[i + 4] := Char(bswap16(Words[i + 4]));
+    Chars[i + 5] := Char(bswap16(Words[i + 5]));
+    Chars[i + 6] := Char(bswap16(Words[i + 6]));
+    Chars[i + 7] := Char(bswap16(Words[i + 7]));
+    Inc(i, 8);
+  end;
+  while i < WordCount do
+  begin
+    Chars[i] := Char(bswap16(Words[i]));
+    Inc(i);
+  end;
+{$else}
+  for i := 0 to WordCount - 1 do
+    Chars[i] := Char(bswap16(Words[i]));
+{$endif}
 {$POINTERMATH OFF}
-  Result := wordCount;
+  Result := WordCount;
 end;
 
 // -----------------------------------------------------------------------------
@@ -650,10 +692,10 @@ function TUTF32LittleEncoding.GetBytes(Chars: PChar; CharCount: Integer;
   Bytes: PByte; ByteCount: Integer): Integer;
 var
   i: Integer;
-  words: PUInt32;
+  Words: PUInt32;
 begin
   Result := 0;
-  words := PUint32(Bytes);
+  Words := PUint32(Bytes);
 {$ifdef DEBUG}
   Assert(ByteCount >= GetByteCount(Chars, CharCount));
 {$endif}
@@ -663,12 +705,12 @@ begin
   begin
     if InRange(Ord(Chars[i]), $D800, $DFFF) then
     begin
-      words[Result] := (((Ord(Chars[i]) - $D800) shl 10)
+      Words[Result] := (((Ord(Chars[i]) - $D800) shl 10)
       + (Ord(Chars[i + 1]) - $DC00)) + $10000;
       Inc(i, 2);
     end
     else begin
-      words[Result] := Ord(Chars[i]);
+      Words[Result] := Ord(Chars[i]);
       Inc(i);
     end;
     Inc(Result);
@@ -681,18 +723,18 @@ end;
 
 function TUTF32LittleEncoding.GetCharCount(Bytes: PByte; ByteCount: Integer): Integer;
 var
-  words: PUInt32;
-  i, wordCount: Integer;
+  Words: PUInt32;
+  i, WordCount: Integer;
 begin
   Result := 0;
-  words := PUint32(Bytes);
-  wordCount := ByteCount div 4;
+  Words := PUint32(Bytes);
+  WordCount := ByteCount div 4;
 {$ifdef DEBUG}
   Assert(ByteCount mod 4 = 0);
 {$endif}
 {$POINTERMATH ON}
-  for i := 0 to wordCount - 1 do
-    Inc(Result, 1 + Ord(words[i] > $FFFF));
+  for i := 0 to WordCount - 1 do
+    Inc(Result, 1 + Ord(Words[i] > $FFFF));
 {$POINTERMATH OFF}
 end;
 
@@ -700,19 +742,19 @@ function TUTF32LittleEncoding.GetChars(Bytes: PByte; ByteCount: Integer;
   Chars: PChar; CharCount: Integer): Integer;
 var
   w: UInt32;
-  words: PUInt32;
-  i, wordCount: Integer;
+  Words: PUInt32;
+  i, WordCount: Integer;
 begin
   Result := 0;
-  words := PUint32(Bytes);
-  wordCount := ByteCount div 4;
+  Words := PUint32(Bytes);
+  WordCount := ByteCount div 4;
 {$ifdef DEBUG}
   Assert(CharCount >= GetCharCount(Bytes, ByteCount));
 {$endif}
 {$POINTERMATH ON}
-  for i := 0 to wordCount - 1 do
+  for i := 0 to WordCount - 1 do
   begin
-    w := words[i];
+    w := Words[i];
     if w > $FFFF then
     begin
       w := w - $10000;
@@ -788,10 +830,10 @@ function TUTF32BigEncoding.GetBytes(Chars: PChar; CharCount: Integer;
   Bytes: PByte; ByteCount: Integer): Integer;
 var
   i: Integer;
-  words: PUInt32;
+  Words: PUInt32;
 begin
   Result := 0;
-  words := PUint32(Bytes);
+  Words := PUint32(Bytes);
 {$ifdef DEBUG}
   Assert(ByteCount >= GetByteCount(Chars, CharCount));
 {$endif}
@@ -801,12 +843,12 @@ begin
   begin
     if InRange(Ord(Chars[i]), $D800, $DFFF) then
     begin
-      words[Result] := bswap32((((Ord(Chars[i]) - $D800) shl 10)
+      Words[Result] := bswap32((((Ord(Chars[i]) - $D800) shl 10)
       + (Ord(Chars[i + 1]) - $DC00)) + $10000);
       Inc(i, 2);
     end
     else begin
-      words[Result] := bswap32(Ord(Chars[i]));
+      Words[Result] := bswap32(Ord(Chars[i]));
       Inc(i);
     end;
     Inc(Result);
@@ -819,18 +861,18 @@ end;
 
 function TUTF32BigEncoding.GetCharCount(Bytes: PByte; ByteCount: Integer): Integer;
 var
-  words: PUInt32;
-  i, wordCount: Integer;
+  Words: PUInt32;
+  i, WordCount: Integer;
 begin
   Result := 0;
-  words := PUint32(Bytes);
-  wordCount := ByteCount div 4;
+  Words := PUint32(Bytes);
+  WordCount := ByteCount div 4;
 {$ifdef DEBUG}
   Assert(ByteCount mod 4 = 0);
 {$endif}
 {$POINTERMATH ON}
-  for i := 0 to wordCount - 1 do
-    Inc(Result, 1 + Ord(bswap32(words[i]) > $FFFF));
+  for i := 0 to WordCount - 1 do
+    Inc(Result, 1 + Ord(bswap32(Words[i]) > $FFFF));
 {$POINTERMATH OFF}
 end;
 
@@ -838,19 +880,19 @@ function TUTF32BigEncoding.GetChars(Bytes: PByte; ByteCount: Integer;
   Chars: PChar; CharCount: Integer): Integer;
 var
   w: UInt32;
-  words: PUInt32;
-  i, wordCount: Integer;
+  Words: PUInt32;
+  i, WordCount: Integer;
 begin
   Result := 0;
-  words := PUint32(Bytes);
-  wordCount := ByteCount div 4;
+  Words := PUint32(Bytes);
+  WordCount := ByteCount div 4;
 {$ifdef DEBUG}
   Assert(CharCount >= GetCharCount(Bytes, ByteCount));
 {$endif}
 {$POINTERMATH ON}
-  for i := 0 to wordCount - 1 do
+  for i := 0 to WordCount - 1 do
   begin
-    w := bswap32(words[i]);
+    w := bswap32(Words[i]);
     if w > $FFFF then
     begin
       w := w - $10000;
