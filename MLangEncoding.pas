@@ -155,13 +155,13 @@ type
     constructor Create; override;
     constructor Create(CodePage: Integer); override;
     constructor Create(CodePage, MBToWCharFlags, WCharToMBFlags: Integer); override;
+    class function EnumCodePages(Callback: TMLangEnumCodePages; Context: Pointer): Boolean; static;
+    class function DetectCodePage(const Buffer: PAnsiChar; Size: Integer;
+      DetectedCodePages: PDetectEncodingInfo; var Scores: Integer): Boolean; static;
     function Clone: TEncoding; override;
     function GetMaxByteCount(CharCount: Integer): Integer; override;
     function GetMaxCharCount(ByteCount: Integer): Integer; override;
     function GetPreamble: TBytes; override;
-    function EnumCodePages(Callback: TMLangEnumCodePages; Context: Pointer): Boolean;
-    function DetectCodePage(const Buffer: PAnsiChar; Size: Integer;
-      DetectedCodePages: PDetectEncodingInfo; var Scores: Integer): Boolean;
     property CodePage: Cardinal read GetCodePage;
     property MaxCharSize: Integer read FMaxCharSize;
   end;
@@ -320,7 +320,7 @@ end;
 
 // -----------------------------------------------------------------------------
 
-function TMLangEncoding.EnumCodePages(Callback: TMLangEnumCodePages; Context: Pointer): Boolean;
+class function TMLangEncoding.EnumCodePages(Callback: TMLangEnumCodePages; Context: Pointer): Boolean;
 var
   num: Cardinal;
   iter: IEnumCodePage;
@@ -339,7 +339,7 @@ begin
   end;
 end;
 
-function TMLangEncoding.DetectCodePage(const Buffer: PAnsiChar; Size: Integer;
+class function TMLangEncoding.DetectCodePage(const Buffer: PAnsiChar; Size: Integer;
   DetectedCodePages: PDetectEncodingInfo; var Scores: Integer): Boolean;
 begin
   Result := (TMLang.MLang2.DetectInputCodepage(MLDETECTCP_NONE, GetACP, Buffer, Size,
