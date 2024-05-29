@@ -85,6 +85,17 @@ begin
   Result := ExtractFilePath(Application.ExeName) + 'files';
 end;
 
+function EnumMLangEncodings(Context: Pointer; CPInfo: PMIMECPINFO): Boolean;
+begin
+  result := true;
+  case CPInfo.uiCodePage of
+  1200: ;  // skip "Unicode"
+  1201: ;  // skip "Unicode (Big Endian)"
+  50000: ; // skip "User Defined"
+  else TStringList(Context).AddObject(CPInfo.wszDescription, TObject(CPInfo.uiCodePage));
+  end;
+end;
+
 procedure TDemoWindow.LoadFile(Sender: TObject);
 
   procedure LoadFromFileEx(const fileName: string; enc: TEncoding);
@@ -109,20 +120,16 @@ var
   invutf8: boolean;
   buffer: TBytes;
   bomSize: integer;
+  readSize: integer;
   encs: TStringList;
   encObj: TEncoding;
+  encDetected: array[0..0] of tagDetectEncodingInfo;
+  encDetectedNum: integer;
 begin
   encs := TStringList.Create;
-  with Memo.Lines,
-  {$if false}TFileOpenDialog{$else}TOpenTextFileDialog{$endif}.Create(Self) do
+  with Memo.Lines, TOpenTextFileDialog.Create(Self) do
     try
-{$if false}
-      with FileTypes.Add do
-      begin
-        DisplayName := 'All Files (*.*)';
-        FileMask := '*.*';
-      end;
-{$else}
+      // Add standard encodings
       encs.Text := 'Auto-detect' + #13#10
       + TUTF8BOMLessEncoding.EncodingName + #13#10
       + TUTF8BOMEncoding.EncodingName + ' with BOM' + #13#10
@@ -132,10 +139,12 @@ begin
       + TUTF32BigEncoding.EncodingName + #13#10
       + TEncodingEx.MLang.EncodingName + #13#10
       + TBinaryEncoding.EncodingName;
+      // Add all available MLang encodings
+      encs.Add('________________________________________');
+      TMlangEncoding.EnumCodePages(EnumMLangEncodings, Pointer(encs));
       Encodings := encs;
       Filter := 'All Files (*.*)|*.*';
       InitialDir := GetFilesPath;
-{$endif}
       if Execute(Self.Handle) then
       begin
         case EncodingIndex of
@@ -143,12 +152,25 @@ begin
           fs := TFileStream.Create(FileName, fmOpenRead);
           try
             SetLength(buffer, fs.Size);
-            fs.Read(buffer[0], fs.Size);
-            bomSize := TEncodingEx.GetBufferEncodingEx(@buffer[0], fs.Size, enc, invutf8);
+            readSize := fs.Read(buffer[0], fs.Size);
+            if readSize <> fs.Size then
+            begin
+              ShowMessage('I/O error.');
+              exit;
+            end;
+            bomSize := TEncodingEx.GetBufferEncodingEx(@buffer[0], readSize, enc, invutf8);
           finally
             fs.Free;
           end;
           TEncodingEx.GetBufferEncodingEx(buffer, encObj, TEncodingEx.UTF8BOMLess);
+          if encObj = TEncoding.Default then
+          begin
+            // Try MLang auto-detection mechanism
+            encDetectedNum := Length(encDetected);
+            TMLangEncoding.DetectCodePage(@buffer[0], readSize, @encDetected, encDetectedNum);
+            if encDetectedNum <> 0 then
+              encObj := TMLangEncoding.Create(encDetected[0].nCodePage);
+          end;
           Status.Panels[0].Text := 'BOM size: ' + IntToStr(bomSize);
           Status.Panels[1].Text := encObj.EncodingName;
           Status.Panels[2].Text := IfThen(invutf8, 'Invalid UTF-8', '');
@@ -163,8 +185,8 @@ begin
         6: LoadFromFileEx(FileName, TEncodingEx.UTF32BE);
         7: LoadFromFileEx(FileName, TEncodingEx.MLang);
         8: LoadFromFileEx(FileName, TEncodingEx.Binary);
-        else
-          Exit;
+        9: ; // ________________________________________
+        else LoadFromFileEx(FileName, TMLangEncoding.Create(Integer(encs.Objects[EncodingIndex])));
         end;
       end;
     finally
